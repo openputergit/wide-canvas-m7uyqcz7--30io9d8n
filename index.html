@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chandigarh House Price Predictor</title>
+    <script src="https://unpkg.com/@tensorflow/tfjs@latest"></script>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f0f9ff;
+        }
+        .custom-shadow {
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+</head>
+<body>
+    <div class="min-h-screen p-4 md:p-8">
+        <div class="max-w-4xl mx-auto bg-white rounded-xl custom-shadow p-6 md:p-8">
+            <h1 class="text-3xl md:text-4xl font-bold text-center text-blue-600 mb-8">
+                <i class="bi bi-house-door"></i> Chandigarh House Price Predictor
+            </h1>
+
+            <form id="predictionForm" class="space-y-6">
+                <!-- Basic Details -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-gray-700 mb-2">Number of Bedrooms</label>
+                        <input type="number" name="bedrooms" min="1" max="10" required
+                            class="w-full p-2 border rounded-lg focus:ring-2 focus:ring-blue-400">
+                    </div>
+                    <div>
+                        <label class="block text-gray-700 mb-2">Number of Bathrooms</label>
+                        <input type="number" name="bathrooms" min="1" max="10" required
+                            class="w-full p-2 border rounded-lg focus:ring-2 focus:ring-blue-400">
+                    </div>
+                </div>
+
+                <!-- Area Details -->
+                <div>
+                    <label class="block text-gray-700 mb-2">Carpet Area (sq ft)</label>
+                    <input type="number" name="area" min="100" required
+                        class="w-full p-2 border rounded-lg focus:ring-2 focus:ring-blue-400">
+                </div>
+
+                <!-- Location -->
+                <div>
+                    <label class="block text-gray-700 mb-2">Location</label>
+                    <select name="location" required class="w-full p-2 border rounded-lg focus:ring-2 focus:ring-blue-400">
+                        <option value="">Select Location</option>
+                        <option value="Sector 1">Sector 1</option>
+                        <option value="Sector 2">Sector 2</option>
+                        <option value="Sector 3">Sector 3</option>
+                        <option value="Sector 4">Sector 4</option>
+                        <option value="Sector 5">Sector 5</option>
+                        <!-- Add more sectors as needed -->
+                    </select>
+                </div>
+
+                <!-- Amenities -->
+                <div>
+                    <label class="block text-gray-700 mb-4">Amenities</label>
+                    <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+                        <label class="flex items-center space-x-2">
+                            <input type="checkbox" name="gym" class="form-checkbox text-blue-600">
+                            <span>Gym</span>
+                        </label>
+                        <label class="flex items-center space-x-2">
+                            <input type="checkbox" name="security" class="form-checkbox text-blue-600">
+                            <span>24x7 Security</span>
+                        </label>
+                        <label class="flex items-center space-x-2">
+                            <input type="checkbox" name="parking" class="form-checkbox text-blue-600">
+                            <span>Parking</span>
+                        </label>
+                        <label class="flex items-center space-x-2">
+                            <input type="checkbox" name="market" class="form-checkbox text-blue-600">
+                            <span>Near Market</span>
+                        </label>
+                        <label class="flex items-center space-x-2">
+                            <input type="checkbox" name="park" class="form-checkbox text-blue-600">
+                            <span>Park</span>
+                        </label>
+                        <label class="flex items-center space-x-2">
+                            <input type="checkbox" name="pool" class="form-checkbox text-blue-600">
+                            <span>Swimming Pool</span>
+                        </label>
+                    </div>
+                </div>
+
+                <button type="submit" class="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 transition-colors">
+                    Predict Price
+                </button>
+            </form>
+
+            <div id="result" class="mt-8 hidden">
+                <div class="bg-green-50 border-2 border-green-200 rounded-lg p-6 text-center">
+                    <h2 class="text-2xl font-semibold text-green-800 mb-2">Estimated Price Range</h2>
+                    <p id="predictedPrice" class="text-3xl font-bold text-green-600"></p>
+                    <p class="text-sm text-gray-600 mt-2">*This is an approximate estimation based on current market trends</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Sample price data (in a real application, this would come from a backend)
+        const basePrice = {
+            "Sector 1": 12000,
+            "Sector 2": 11000,
+            "Sector 3": 10500,
+            "Sector 4": 9500,
+            "Sector 5": 9000
+        };
+
+        const amenityMultipliers = {
+            gym: 1.05,
+            security: 1.03,
+            parking: 1.04,
+            market: 1.06,
+            park: 1.02,
+            pool: 1.07
+        };
+
+        document.getElementById('predictionForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // Get form values
+            const formData = new FormData(e.target);
+            const location = formData.get('location');
+            const bedrooms = parseInt(formData.get('bedrooms'));
+            const bathrooms = parseInt(formData.get('bathrooms'));
+            const area = parseInt(formData.get('area'));
+
+            // Calculate base price
+            let price = basePrice[location] * area;
+
+            // Add room multipliers
+            price *= (1 + (bedrooms * 0.1));
+            price *= (1 + (bathrooms * 0.05));
+
+            // Add amenity multipliers
+            for (let [amenity, multiplier] of Object.entries(amenityMultipliers)) {
+                if (formData.get(amenity)) {
+                    price *= multiplier;
+                }
+            }
+
+            // Display result
+            const resultDiv = document.getElementById('result');
+            const predictedPrice = document.getElementById('predictedPrice');
+            resultDiv.classList.remove('hidden');
+            
+            // Format price in Indian currency format
+            const formattedPrice = new Intl.NumberFormat('en-IN', {
+                style: 'currency',
+                currency: 'INR',
+                maximumFractionDigits: 0
+            }).format(price);
+
+            // Show price range (±5%)
+            const lowerPrice = new Intl.NumberFormat('en-IN', {
+                style: 'currency',
+                currency: 'INR',
+                maximumFractionDigits: 0
+            }).format(price * 0.95);
+
+            const upperPrice = new Intl.NumberFormat('en-IN', {
+                style: 'currency',
+                currency: 'INR',
+                maximumFractionDigits: 0
+            }).format(price * 1.05);
+
+            predictedPrice.textContent = `${lowerPrice} - ${upperPrice}`;
+
+            // Smooth scroll to result
+            resultDiv.scrollIntoView({ behavior: 'smooth' });
+        });
+    </script>
+<script>document.body.addEventListener('wheel', e => { if (!e.ctrlKey) return; e.preventDefault(); return }, { passive: false })</script>
+	</body>
+</html>
